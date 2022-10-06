@@ -1,5 +1,8 @@
 import "./styles.css";
 
+const positiveMigration = new Map();
+const negativeMigration = new Map();
+
 const fetchData = async () => {
   const url =
     "https://geo.stat.fi/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=tilastointialueet:kunta4500k&outputFormat=json&srsName=EPSG:4326";
@@ -19,23 +22,24 @@ const fetchData = async () => {
   let nMigration = [];
 
   pMigration = PMData.dataset.value;
+  pMigration.shift();
 
   nMigration = NMData.dataset.value;
+  nMigration.shift();
 
-  console.log(Object.keys(PMData.dataset.dimension.Tuloalue.category.index));
-
-  const idList = [];
-  for (let i = 0; i < data.features.length; i++) {
-    idList[i] = "KU" + data.features[i].properties.kunta;
+  let index = 0;
+  for (let municipality in PMData.dataset.dimension.Tuloalue.category.index) {
+    if (municipality === "SSS") continue;
+    municipality = municipality.slice(2);
+    positiveMigration.set(municipality, pMigration[index]);
+    negativeMigration.set(municipality, nMigration[index]);
+    index++;
   }
 
-  console.log(idList);
-  console.log(data.features);
-
-  initMap(data, idList);
+  initMap(data);
 };
 
-const initMap = (data, idList) => {
+const initMap = (data) => {
   let map = L.map("map", {
     minZoom: -3
   });
@@ -54,15 +58,16 @@ const initMap = (data, idList) => {
 };
 
 const getFeature = async (feature, layer) => {
-  /* todo
-  Mieti joku tapa jolla saa idListin tänne + muuttomäärät
-  */
   const name = feature.properties.name;
+  const municipality = feature.properties.kunta;
+
   layer.bindTooltip(name);
 
+  let negMigration = negativeMigration.get(municipality);
+  let posMigration = positiveMigration.get(municipality);
   layer.bindPopup(
-    `<p>Migration to ${name}: </p>
-    <p>Migration from ${name}: </p>`
+    `<p>Migration to ${name}: ${posMigration}</p>
+    <p>Migration from ${name}: ${negMigration}</p>`
   );
 };
 

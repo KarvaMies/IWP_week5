@@ -46,7 +46,8 @@ const initMap = (data) => {
 
   let geoJson = L.geoJSON(data, {
     weight: 2,
-    onEachFeature: getFeature
+    onEachFeature: getFeature,
+    style: getStyle
   }).addTo(map);
 
   let osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -69,6 +70,21 @@ const getFeature = async (feature, layer) => {
     `<p>Migration to ${name}: ${posMigration}</p>
     <p>Migration from ${name}: ${negMigration}</p>`
   );
+};
+
+const getStyle = (feature) => {
+  const municipality = feature.properties.kunta;
+  let negMigration = negativeMigration.get(municipality);
+  let posMigration = positiveMigration.get(municipality);
+
+  let hue =
+    (posMigration / negMigration) ** 3 * 60 < 120
+      ? (posMigration / negMigration) ** 3 * 60
+      : 120;
+
+  return {
+    color: "hsl(" + hue + ", 75%, 50%)"
+  };
 };
 
 fetchData();
